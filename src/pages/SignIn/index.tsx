@@ -1,4 +1,3 @@
-import * as React from "react";
 import {
   Avatar,
   Button,
@@ -7,16 +6,27 @@ import {
   Typography,
   Grid,
   Link,
+  InputAdornment,
+  IconButton,
 } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
 import { Formik, Form, Field, FormikHelpers } from "Formik";
 import { object, string } from "yup";
-import { signIn } from "@/services/serverService";
+
 import { useNavigate } from "react-router-dom";
+import { useAppDispatch } from "@/store/store";
+import { signIn } from "@/store/slices/authSlice";
+import { useState } from "react";
+import CustomModal from "@/components/CustomModal";
+import { VisibilityOffOutlined, VisibilityOutlined } from "@mui/icons-material";
 
 const SignIn = () => {
+  const [openModal, setOpenModal] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+
   interface loginForm {
     username: string;
     password: string;
@@ -37,12 +47,15 @@ const SignIn = () => {
   ) => {
     console.log(values);
     formikHelper.resetForm();
-    signIn(values)
-      .then((response) => {
-        const { success } = response;
-        if (success) navigate("/dashboard", { replace: true });
-      })
-      .catch((err) => console.log(err));
+    dispatch(signIn(values)).then((data) => {
+      console.log(data);
+      if (data.meta.requestStatus == "rejected") {
+        console.log(data.meta.requestStatus);
+        setOpenModal(true);
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
+    });
   };
 
   return (
@@ -81,11 +94,27 @@ const SignIn = () => {
                 as={TextField}
                 name="password"
                 label="Password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 id="password"
                 autoComplete="current-password"
                 error={Boolean(errors.password) && Boolean(touched.password)}
                 helperText={Boolean(touched.password) && errors.password}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                      >
+                        {showPassword ? (
+                          <VisibilityOutlined />
+                        ) : (
+                          <VisibilityOffOutlined />
+                        )}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
               />
 
               <Button
@@ -105,6 +134,12 @@ const SignIn = () => {
                 </Grid>
               </Grid>
             </Box>
+            <CustomModal
+              title="Sign in faill"
+              description="Email or Password Invalid"
+              openModal={openModal}
+              setOpenModal={setOpenModal}
+            />
           </Form>
         )}
       </Formik>
